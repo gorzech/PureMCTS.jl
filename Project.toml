@@ -1,0 +1,13 @@
+name = "PureMCTS"
+uuid = "cde1e6ed-b6c5-4433-b8e3-a6e84e6a9009"
+authors = ["Grzegorz Orzechowski <2590699+gorzech@users.noreply.github.com> and contributors"]
+version = "0.1.0"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
