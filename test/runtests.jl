@@ -1,3 +1,4 @@
+using AbstractTrees
 using PureMCTS
 using Test
 
@@ -5,4 +6,5 @@ using Test
     # Write your tests here.
     include("helper_test.jl")
     include("MCTS/tree_test.jl")
+    include("MCTS/mcts_test.jl")
 end

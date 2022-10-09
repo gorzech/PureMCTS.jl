@@ -1,25 +1,16 @@
-struct Node
-    value :: Float64
-    reward :: Float64
-    state :: Union{Nothing, Vector{Float64}}
-end
+mutable struct TreeNode{T}
+    value :: T
+    parent :: Union{Nothing, TreeNode{T}}
+    children :: Union{Nothing, Vector{TreeNode{T}}}
+    function TreeNode{T}(data, parent=nothing, children=nothing) where T
+        new{T}(data, parent, children)
+    end
+end 
 
-Node() = Node(0.0, 0.0, nothing)
+AbstractTrees.ParentLinks(::Type{TreeNode}) = StoredParents()
 
-struct TreeNode
-    node :: Node
-    visits :: Int
-    parent :: Union{Nothing, Int}
-    children :: Union{Nothing, Vector{Int}}
-end
+AbstractTrees.children(node::TreeNode) = node.children
 
-TreeNode() = TreeNode(Node(), 0, nothing, nothing)
-TreeNode(parent :: Int) = TreeNode(Node(), 0, parent, nothing)
+AbstractTrees.parent(node::TreeNode) = node.parent
 
-struct Tree
-    nodes :: Vector{TreeNode}
-end
-
-Tree() = Tree([TreeNode()])
-
-get_node(tree::Tree, id::Int) = tree.nodes[id]
+AbstractTrees.nodevalue(node::TreeNode) = node.data
