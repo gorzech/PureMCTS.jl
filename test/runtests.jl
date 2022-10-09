@@ -1,4 +1,6 @@
+# using Revise
 using AbstractTrees
+using Environments
 using PureMCTS
 using Test
 

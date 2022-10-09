@@ -6,8 +6,10 @@ include("helper.jl")
 
 include("MCTS/tree.jl")
 export TreeNode
+export parent
 
 include("MCTS/mcts.jl")
-export Planner, select
+export Planner
+export select, expand!
 
 end
