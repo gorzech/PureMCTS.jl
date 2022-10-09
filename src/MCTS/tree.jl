@@ -15,3 +15,13 @@ AbstractTrees.parent(node::TreeNode) = node.parent
 
 nodevalue(value) = value
 AbstractTrees.nodevalue(node::TreeNode) = nodevalue(node.value)
+
+function depth(node::TreeNode) 
+    if isroot(node)
+        1
+    else 
+        depth(AbstractTrees.parent(node)) + 1
+    end
+end
+
+isleaf(node::TreeNode) = isempty(node.children)

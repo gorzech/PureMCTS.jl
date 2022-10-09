@@ -1,7 +1,8 @@
 @testset "select on new tree just return root" begin
     tree = Planner(InvertedPendulumEnv())
-    node = @test_nowarn select(tree)
+    node, total_reward = @test_nowarn select(tree)
     @test isroot(node)
+    @test total_reward == 0.0
 end
 
 @testset "check expand on new tree" begin

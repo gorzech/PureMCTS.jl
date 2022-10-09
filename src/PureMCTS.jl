@@ -6,10 +6,10 @@ include("helper.jl")
 
 include("MCTS/tree.jl")
 export TreeNode
-export parent
+export depth
 
 include("MCTS/mcts.jl")
 export Planner
-export select, expand!
+export select, expand!, simulate!, run!
 
 end
