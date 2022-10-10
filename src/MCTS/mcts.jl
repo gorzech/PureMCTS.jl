@@ -1,13 +1,13 @@
-mutable struct NodeValue
-    state::Union{Nothing,Vector{Float64}}
+mutable struct NodeValue{T}
+    state::Union{Nothing,T}
     reward::Float64
     value::Float64
     visits::Int
-    NodeValue() = new(nothing, 0, 0, 0)
-    NodeValue(state) = new(state, 0, 0, 0)
+    NodeValue{T}() where T = new{T}(nothing, 0, 0, 0)
+    NodeValue(state::T) where T = new{T}(state, 0, 0, 0)
 end
 
-nodevalue(nv::NodeValue) = (nv.state, nv.reward, nv.visits)
+nodevalue(nv::NodeValue) = (nv.value, nv.reward, nv.visits)
 
 struct Planner
     env::AbstractEnvironment
@@ -49,7 +49,7 @@ end
 
 function expand!(node::TreeNode, mcts::Planner)
     leafs = length(action_space(mcts.env))
-    node.children = [TreeNode{NodeValue}(NodeValue(), node) for _ = 1:leafs]
+    node.children = [TreeNode{NodeValue}(NodeValue{typeof(state(mcts.env))}(), node) for _ = 1:leafs]
     nothing
 end
 
@@ -78,8 +78,18 @@ function simulate!(node::TreeNode, total_reward::Float64, mcts::Planner)
     return total_reward
 end
 
+function backpropagate!(node::TreeNode, total_reward::Float64, mcts::Planner)
+    while !isroot(node)
+        node.value.visits += 1
+        node.value.value += (total_reward - node.value.value) / node.value.visits
+        node = AbstractTrees.parent(node)
+    end
+    nothing
+end
+
 function run!(mcts::Planner)
     node, total_reward = select(mcts)
     expand!(node, mcts)
     total_reward = simulate!(node, total_reward, mcts)
+    backpropagate!(node, total_reward, mcts)
 end
