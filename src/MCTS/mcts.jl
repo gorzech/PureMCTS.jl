@@ -38,7 +38,7 @@ function select(mcts::Planner)
     node = mcts.tree
     reward_multiplier = mcts.γ
     total_reward = 0.0 # root's reward can be only 0
-    while !isleaf(node)
+    while !isleaf(node) && !isdone(node.value.state)
         selection_values = [selection_value(n, mcts) for n in children(node)]
         node = children(node)[rand_max(selection_values)]
         reward_multiplier *= mcts.γ
@@ -48,32 +48,36 @@ function select(mcts::Planner)
 end
 
 function expand!(node::TreeNode, mcts::Planner)
-    leafs = length(action_space(mcts.env))
-    node.children = [TreeNode{NodeValue}(NodeValue{typeof(state(mcts.env))}(), node) for _ = 1:leafs]
+    if isnothing(node.value.state)
+        pn = AbstractTrees.parent(node)
+        setstate!(mcts.env, pn.value.state)
+        action_id = findfirst(map(n -> n === node, children(pn)))
+        _, reward, done, _ = step!(mcts.env, action_space(mcts.env)[action_id])
+        node.value.state = state(env)
+        node.value.reward = reward
+    end
+
+    if isleaf(node) && depth(node) < mcts.horizon && (!isdone(node.value.state) || isroot(node))
+        leafs = length(action_space(mcts.env))
+        node.children = [TreeNode{NodeValue}(NodeValue{typeof(state(mcts.env))}(), node) for _ = 1:leafs]
+    end
     nothing
 end
 
 function simulate!(node::TreeNode, total_reward::Float64, mcts::Planner)
     env = mcts.env
     actions = action_space(env)
-    reward_multiplier = mcts.γ ^ depth(node)
-    done = false
-    if isnothing(node.value.state)
-        pn = AbstractTrees.parent(node)
-        setstate!(env, pn.value.state)
-        action_id = findfirst(map(n -> n === node, children(pn)))
-        _, reward, done, _ = step!(env, actions[action_id])
-        node.value.state = state(env)
-        node.value.reward = reward
-        total_reward += reward_multiplier * reward
-    else
-        setstate!(env, node.value.state)
-    end
-    while !done
+    d = depth(node)
+    reward_multiplier = mcts.γ ^ d
+    done = isdone(node.value.state)
+    setstate!(env, node.value.state)
+    total_reward += reward_multiplier * node.value.reward
+    while !done && d <= mcts.horizon
         action = rand(actions)
         _, reward, done, _ = step!(env, action)
         reward_multiplier *= mcts.γ
         total_reward += reward_multiplier * reward
+        d += 1
     end
     return total_reward
 end
