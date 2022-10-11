@@ -124,17 +124,20 @@ function plan!(mcts::Planner)
     children(mcts.tree)[select_action_id(mcts)]
 end
 
-function run_planner!(mcts)
+function run_planner!(mcts; render_env = false)
     episodes_before_done = 0
-    while !isdone(mcts.tree.value.state) #&& episodes_before_done < 20
+    if render_env
+        render!(mcts.env)
+    end
+    while !isdone(mcts.tree.value.state) 
         new_root = plan!(mcts)
-        # new_root.children = ()
-        # mcts = Planner(mcts.env, mcts.temperature, mcts.γ, mcts.horizon, mcts.budget, new_root)
+        if render_env
+            setstate!(mcts.env, new_root.value.state)
+            render!(mcts.env)
+        end
         mcts.tree.value = new_root.value
         mcts.tree.children = () # reset strategy
         episodes_before_done += 1
-        # println(episodes_before_done)
-        # println(mcts.tree.value)
     end
     println(episodes_before_done)
 end
