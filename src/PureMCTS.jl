@@ -10,6 +10,6 @@ export depth
 
 include("MCTS/mcts.jl")
 export Planner
-export select, expand!, simulate!, run!
+export select, expand!, simulate!, backpropagate!, run!, plan!, run_planner!
 
 end
