@@ -1,5 +1,6 @@
 module PureMCTS
 using AbstractTrees
+using AbstractTrees: parent
 using Environments
 # Write your package code here.
 include("helper.jl")
@@ -10,6 +11,6 @@ export depth
 
 include("MCTS/mcts.jl")
 export Planner
-export select, expand!, simulate!, backpropagate!, run!, plan!, run_planner!
+export select!, expand!, simulate!, backpropagate!, run!, plan!, run_planner!
 
 end
