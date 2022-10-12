@@ -75,7 +75,7 @@ end
 
 function expand!(node::TreeNode, mcts::Planner)
     done = isdone(node.value.state)
-    if isleaf(node) && (!done || isroot(node)) && depth(node) < mcts.horizon
+    if isleaf(node) && (!done || isroot(node)) && depth(node) <= mcts.horizon
         leafs = length(action_space(mcts.env))
         node.children = [
             TreeNode{NodeValue}(NodeValue{typeof(state(mcts.env))}(), node) for _ = 1:leafs
@@ -129,22 +129,24 @@ function plan!(mcts::Planner)
     children(mcts.tree)[select_action_id(mcts)]
 end
 
-function run_planner!(mcts; render_env = false)
+function run_planner!(mcts; render_env = false, max_steps = Inf)
     episodes_before_done = 0
     if render_env
         render!(mcts.env)
     end
+    steps = 0
     while !isdone(mcts.tree.value.state)
         new_root = plan!(mcts)
         if render_env
             setstate!(mcts.env, new_root.value.state)
             render!(mcts.env)
         end
+        episodes_before_done += 1
+        steps += 1
+        steps < max_steps || break
         # reset strategy
         mcts.tree.value.state = new_root.value.state
         mcts.tree.children = () 
-        
-        episodes_before_done += 1
     end
     println(episodes_before_done)
 end

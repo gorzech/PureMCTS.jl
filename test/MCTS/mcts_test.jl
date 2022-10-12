@@ -6,6 +6,19 @@ Environments.setstate!(env::DummyEnv, state) = nothing
 Environments.action_space(env::DummyEnv) = [1, 2]
 Environments.isdone(state) = false
 
+mutable struct TestEnv <: AbstractEnvironment
+    steps :: Int
+end
+Environments.reset!(env::TestEnv, seed) = (env.steps = 0)
+Environments.step!(env::TestEnv, action) = begin
+    env.steps += 1
+    env.steps, 10.0 + env.steps, false, ()
+end
+Environments.state(env::TestEnv) = env.steps
+Environments.setstate!(env::TestEnv, state) = (env.steps = state)
+Environments.action_space(env::TestEnv) = [1]
+Environments.isdone(state::Int) = false
+
 @testset "select on new tree return one of the nodes" begin
     tree = Planner(DummyEnv())
     node, total_reward = @test_nowarn select!(tree)
@@ -29,21 +42,21 @@ end
     @test new_node.value.visits == 0
 end
 
-@testset "Check plan! based on simplistic environment" begin
-    # export reset!, step!, state, setstate!, action_space, isdone, render!
-    mutable struct TestEnv <: AbstractEnvironment
-        steps :: Int
-    end
-    Environments.reset!(env::TestEnv, seed) = (env.steps = 0)
-    Environments.step!(env::TestEnv, action) = begin
-        env.steps += 1
-        env.steps, 10.0 + env.steps, false, ()
-    end
-    Environments.state(env::TestEnv) = env.steps
-    Environments.setstate!(env::TestEnv, state) = (env.steps = state)
-    Environments.action_space(env::TestEnv) = [1]
-    Environments.isdone(state::Int) = false
-    
+@testset "Check run! based on simplistic environment" begin
+    env = TestEnv(0)
+    mcts = Planner(env, γ = 0.5, budget = 6, horizon = 3)
+    @test_nowarn run!(mcts)
+    @test length(children( mcts.tree)) == 1
+    @test env.steps == 3
+    run!(mcts)
+    @test treeheight(mcts.tree) == 2
+    run!(mcts)
+    @test treeheight(mcts.tree) == 3
+    run!(mcts)
+    @test treeheight(mcts.tree) == 3
+end
+
+@testset "Check plan! based on simplistic environment" begin  
     env = TestEnv(0)
     mcts = Planner(env, γ = 0.5, budget = 6, horizon = 3)
     node = @test_nowarn plan!(mcts)
@@ -62,6 +75,30 @@ end
     @test child_node.value.visits == 1
 end
 
-# @testset "Check plan! based on dummy env" begin
+@testset "Check plan! based on dummy env" begin
+    env = DummyEnv()
+    mcts = Planner(env, γ = 0.6, budget = 9, horizon = 3)
+    node = @test_nowarn plan!(mcts)
+    @test AbstractTrees.parent(node) === mcts.tree
+    @test node.value.state == 1
+    @test node.value.reward == 1
+    @test node.value.value == 0.6 + 0.6 * 0.6 + 0.6 ^ 3
+    @test node.value.visits == 1
+
+    @test treebreadth(node) == 2
+    @test treebreadth(mcts.tree) == 4
+end
+
+@testset "Check run_planner! based on dummy env" begin
+    env = DummyEnv()
+    mcts = Planner(env, γ = 0.6, budget = 12, horizon = 3)
     
-# end
+    @test_nowarn run_planner!(mcts, max_steps = 2)
+    print_tree(mcts.tree)
+    @test treebreadth(mcts.tree) == 5
+    node = children(mcts.tree)[1]
+    @test node.value.state == 1
+    @test node.value.reward == 1
+    @test node.value.value == 0.6 + 0.6 * 0.6 + 0.6 ^ 3
+    @test node.value.visits == 2
+end
