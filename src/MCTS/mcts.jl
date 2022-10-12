@@ -50,33 +50,40 @@ function select(mcts::Planner)
     node = mcts.tree
     reward_multiplier = mcts.γ
     total_reward = 0.0 # root's reward can be only 0
-    while !isleaf(node) && !isdone(node.value.state)
+    while !isleaf(node) && !isdone(node.value.state) 
         action_id = select_action_id(node, mcts)
         node = children(node)[action_id]
         reward_multiplier *= mcts.γ
         total_reward += reward_multiplier * node.value.reward
     end
+    total_reward += reward_multiplier * mcts.γ * node.value.reward
     node, total_reward
 end
 
-function expand!(node::TreeNode, mcts::Planner)
-    done = false
+function step_empty_state_node!(node, env)
     if isnothing(node.value.state)
         pn = AbstractTrees.parent(node)
-        setstate!(mcts.env, pn.value.state)
+        setstate!(env, pn.value.state)
         action_id = findfirst(map(n -> n === node, children(pn)))
-        _, reward, done, _ = step!(mcts.env, action_space(mcts.env)[action_id])
-        node.value.state = state(mcts.env)
+        _, reward, _, _ = step!(env, action_space(env)[action_id])
+        node.value.state = state(env)
         node.value.reward = reward
     end
+end
 
+function expand!(node::TreeNode, mcts::Planner)
+    step_empty_state_node!(node, mcts.env)
+    done = isdone(node.value.state)
     if isleaf(node) && (!done || isroot(node)) && depth(node) < mcts.horizon
         leafs = length(action_space(mcts.env))
         node.children = [
             TreeNode{NodeValue}(NodeValue{typeof(state(mcts.env))}(), node) for _ = 1:leafs
         ]
+        child_node = rand(node.children)
+        step_empty_state_node!(child_node, mcts.env)
+        return child_node
     end
-    nothing
+    return node # it is node at terminal state
 end
 
 function simulate!(node::TreeNode, total_reward::Float64, mcts::Planner)
@@ -108,19 +115,16 @@ end
 
 function run!(mcts::Planner)
     node, total_reward = select(mcts)
-    expand!(node, mcts)
-    total_reward = simulate!(node, total_reward, mcts)
-    backpropagate!(node, total_reward, mcts)
+    new_node = expand!(node, mcts)
+    total_reward = simulate!(new_node, total_reward, mcts)
+    backpropagate!(new_node, total_reward, mcts)
 end
 
 function plan!(mcts::Planner)
     episodes = mcts.budget ÷ mcts.horizon
-    for i = 1:episodes+1
-        # if i % 10 == 0
-        #     @debug ('{} / {}'.format(i+1, self.config['episodes']))
+    for i = 1:episodes
         run!(mcts)
     end
-    # action_space(mcts.env)[select_action_id(mcts)]
     children(mcts.tree)[select_action_id(mcts)]
 end
 
