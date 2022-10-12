@@ -130,7 +130,7 @@ function plan!(mcts::Planner)
 end
 
 function run_planner!(mcts; render_env = false, max_steps = Inf)
-    episodes_before_done = 0
+    completed_episodes = 0
     if render_env
         render!(mcts.env)
     end
@@ -141,12 +141,13 @@ function run_planner!(mcts; render_env = false, max_steps = Inf)
             setstate!(mcts.env, new_root.value.state)
             render!(mcts.env)
         end
-        episodes_before_done += 1
+        completed_episodes += 1
         steps += 1
         steps < max_steps || break
         # reset strategy
         mcts.tree.value.state = new_root.value.state
         mcts.tree.children = () 
     end
-    println(episodes_before_done)
+    # @info "Planner completed $completed_episodes episodes"
+    return completed_episodes
 end
