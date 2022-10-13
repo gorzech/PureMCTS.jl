@@ -8,6 +8,7 @@ AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
 Environments = "3a0e23c7-c015-460e-b903-d2dac87c3752"
 
 [compat]
+AbstractTrees = "0.4"
 julia = "1"
 
 [extras]
