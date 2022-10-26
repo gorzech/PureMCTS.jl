@@ -26,7 +26,7 @@ function Planner(
     horizon = 10,
     budget = 100,
 )
-    reset!(env, seed)
+    Environments.reset!(env, seed)
     initial_state = state(env)
     nv = NodeValue(initial_state)
     tn = TreeNode{NodeValue}(nv)
@@ -34,7 +34,7 @@ function Planner(
 end
 
 selection_value(node::TreeNode, mcts::Planner) =
-    node.value.value + mcts.temperature / (node.value.visits + 1)
+    value(node).value + mcts.temperature / (value(node).visits + 1)
 
 function select_action_id(node, mcts::Planner)::Union{Nothing,Int}
     if isleaf(node)
@@ -47,13 +47,13 @@ end
 select_action_id(mcts::Planner) = select_action_id(mcts.tree, mcts)
 
 function step_empty_state_node!(node, env)
-    if isnothing(node.value.state)
+    if isnothing(value(node).state)
         pn = AbstractTrees.parent(node)
         setstate!(env, pn.value.state)
         action_id = findfirst(map(n -> n === node, children(pn)))
         _, reward, _, _ = step!(env, action_space(env)[action_id])
-        node.value.state = state(env)
-        node.value.reward = reward
+        value(node).state = state(env)
+        value(node).reward = reward
     end
 end
 
@@ -61,26 +61,24 @@ function select!(mcts::Planner)
     node = mcts.tree
     reward_multiplier = 1.0
     total_reward = 0.0
-    while !isleaf(node) && !isdone(node.value.state)
-        total_reward += reward_multiplier * node.value.reward
+    while !isleaf(node) && !isdone(value(node).state)
+        total_reward += reward_multiplier * value(node).reward
         reward_multiplier *= mcts.γ
         action_id = select_action_id(node, mcts)
         node = children(node)[action_id]
     end
     step_empty_state_node!(node, mcts.env)
-    total_reward += reward_multiplier * node.value.reward
+    total_reward += reward_multiplier * value(node).reward
     node, total_reward
 end
 
 
 function expand!(node::TreeNode, mcts::Planner)
-    done = isdone(node.value.state)
+    done = isdone(value(node).state)
     if isleaf(node) && (!done || isroot(node)) && depth(node) <= mcts.horizon
         leafs = length(action_space(mcts.env))
-        node.children = [
-            TreeNode{NodeValue}(NodeValue{typeof(state(mcts.env))}(), node) for _ = 1:leafs
-        ]
-        child_node = rand(node.children)
+        addchildren!(node, [NodeValue{typeof(state(mcts.env))}() for _ = 1:leafs])
+        child_node = rand(children(node))
         step_empty_state_node!(child_node, mcts.env)
         return child_node
     end
@@ -92,9 +90,9 @@ function simulate!(node::TreeNode, total_reward::Float64, mcts::Planner)
     actions = action_space(env)
     d = depth(node)
     reward_multiplier = mcts.γ^(d - 1)
-    done = isdone(node.value.state)
-    setstate!(env, node.value.state)
-    total_reward += reward_multiplier * node.value.reward
+    done = isdone(value(node).state)
+    setstate!(env, value(node).state)
+    total_reward += reward_multiplier * value(node).reward
     while !done && d <= mcts.horizon
         action = rand(actions)
         _, reward, done, _ = step!(env, action)
@@ -107,8 +105,8 @@ end
 
 function backpropagate!(node::TreeNode, total_reward::Float64, mcts::Planner)
     while !isroot(node)
-        node.value.visits += 1
-        node.value.value += (total_reward - node.value.value) / node.value.visits
+        value(node).visits += 1
+        value(node).value += (total_reward - value(node).value) / value(node).visits
         node = AbstractTrees.parent(node)
     end
     nothing
@@ -135,7 +133,7 @@ function run_planner!(mcts; render_env = false, max_steps = Inf)
         render!(mcts.env)
     end
     steps = 0
-    while !isdone(mcts.tree.value.state)
+    while !isdone(value(mcts.tree).state)
         new_root = plan!(mcts)
         if render_env
             setstate!(mcts.env, new_root.value.state)
@@ -145,8 +143,7 @@ function run_planner!(mcts; render_env = false, max_steps = Inf)
         steps += 1
         steps < max_steps || break
         # reset strategy
-        mcts.tree.value.state = new_root.value.state
-        mcts.tree.children = () 
+        reset!(mcts.tree, NodeValue(value(new_root).state))
     end
     # @info "Planner completed $completed_episodes episodes"
     return completed_episodes
