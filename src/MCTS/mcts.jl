@@ -20,11 +20,11 @@ end
 
 function Planner(
     env::AbstractEnvironment;
-    seed::Union{Nothing,Int} = nothing,
-    temperature = 100.0,
-    γ = 0.9,
-    horizon = 10,
-    budget = 100,
+    seed::Union{Nothing,Int}=nothing,
+    temperature=100.0,
+    γ=0.9,
+    horizon=10,
+    budget=100
 )
     Environments.reset!(env, seed)
     initial_state = state(env)
@@ -33,8 +33,15 @@ function Planner(
     Planner(env, temperature, γ, horizon, budget, tn)
 end
 
-selection_value(node::TreeNode, mcts::Planner) =
-    value(node).value + mcts.temperature / (value(node).visits + 1)
+# return self.value + temperature * self.prior * np.sqrt(np.log(self.parent.count) / self.count)
+# selection_value(node::TreeNode, mcts::Planner) =
+#     value(node).value + mcts.temperature / (value(node).visits + 1)
+
+function selection_value(node::TreeNode, mcts::Planner)
+    p = AbstractTrees.parent(node)
+    p_i = 1 / length(children(p))
+    value(node).value + mcts.temperature * p_i * sqrt(value(p).visits) / (value(node).visits + 1)
+end
 
 function select_action_id(node, mcts::Planner)::Union{Nothing,Int}
     if isleaf(node)
@@ -77,7 +84,7 @@ function expand!(node::TreeNode, mcts::Planner)
     done = isdone(value(node).state)
     if isleaf(node) && (!done || isroot(node)) && depth(node) <= mcts.horizon
         leafs = length(action_space(mcts.env))
-        addchildren!(node, [NodeValue{typeof(state(mcts.env))}() for _ = 1:leafs])
+        addchildren!(node, (NodeValue{typeof(state(mcts.env))}() for _ = 1:leafs))
         child_node = rand(children(node))
         step_empty_state_node!(child_node, mcts.env)
         return child_node
@@ -104,9 +111,12 @@ function simulate!(node::TreeNode, total_reward::Float64, mcts::Planner)
 end
 
 function backpropagate!(node::TreeNode, total_reward::Float64, mcts::Planner)
-    while !isroot(node)
+    while true
         value(node).visits += 1
         value(node).value += (total_reward - value(node).value) / value(node).visits
+        if isroot(node)
+            break
+        end
         node = AbstractTrees.parent(node)
     end
     nothing
@@ -124,10 +134,12 @@ function plan!(mcts::Planner)
     for i = 1:episodes
         run!(mcts)
     end
-    children(mcts.tree)[select_action_id(mcts)]
+    new_node = children(mcts.tree)[select_action_id(mcts)]
+    step_empty_state_node!(new_node, mcts.env) # in rare cases this happens
+    return new_node
 end
 
-function run_planner!(mcts; render_env = false, max_steps = Inf)
+function run_planner!(mcts; render_env=false, max_steps=Inf)
     completed_episodes = 0
     if render_env
         render!(mcts.env)
@@ -136,7 +148,7 @@ function run_planner!(mcts; render_env = false, max_steps = Inf)
     while !isdone(value(mcts.tree).state)
         new_root = plan!(mcts)
         if render_env
-            setstate!(mcts.env, new_root.value.state)
+            setstate!(mcts.env, value(new_root).state)
             render!(mcts.env)
         end
         completed_episodes += 1

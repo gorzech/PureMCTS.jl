@@ -85,7 +85,7 @@ end
     @test node.value.value == 0.6 + 0.6 * 0.6 + 0.6 ^ 3
     @test node.value.visits == 1
 
-    @test treebreadth(node) == 2
+    @test treebreadth(node) == 1
     @test treebreadth(mcts.tree) == 4
 end
 
@@ -94,7 +94,6 @@ end
     mcts = Planner(env, γ = 0.6, budget = 12, horizon = 3)
     
     @test_nowarn run_planner!(mcts, max_steps = 2)
-    print_tree(mcts.tree)
     @test treebreadth(mcts.tree) == 5
     node = children(mcts.tree)[1]
     @test node.value.state == 1
