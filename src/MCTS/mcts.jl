@@ -11,7 +11,7 @@ nodevalue(nv::NodeValue) = (nv.value, nv.reward, nv.visits)
 
 struct Planner
     env::AbstractEnvironment
-    temperature::Float64
+    exploration_param::Float64
     γ::Float64
     horizon::Int
     budget::Int
@@ -21,7 +21,7 @@ end
 function Planner(
     env::AbstractEnvironment;
     seed::Union{Nothing,Int}=nothing,
-    temperature=100.0,
+    exploration_param=100.0,
     γ=0.9,
     horizon=10,
     budget=100
@@ -30,17 +30,17 @@ function Planner(
     initial_state = state(env)
     nv = NodeValue(initial_state)
     tn = TreeNode{NodeValue}(nv)
-    Planner(env, temperature, γ, horizon, budget, tn)
+    Planner(env, exploration_param, γ, horizon, budget, tn)
 end
 
-# return self.value + temperature * self.prior * np.sqrt(np.log(self.parent.count) / self.count)
+# return self.value + exploration_param * self.prior * np.sqrt(np.log(self.parent.count) / self.count)
 # selection_value(node::TreeNode, mcts::Planner) =
-#     value(node).value + mcts.temperature / (value(node).visits + 1)
+#     value(node).value + mcts.exploration_param / (value(node).visits + 1)
 
 function selection_value(node::TreeNode, mcts::Planner)
     p = AbstractTrees.parent(node)
     p_i = 1 / length(children(p))
-    value(node).value + mcts.temperature * p_i * sqrt(value(p).visits) / (value(node).visits + 1)
+    value(node).value + mcts.exploration_param * p_i * sqrt(value(p).visits) / (value(node).visits + 1)
 end
 
 function select_action_id(node, mcts::Planner)::Union{Nothing,Int}
