@@ -1,4 +1,4 @@
-# Results for the single pendulum
+# Results for the single inverted pendulum
 
 ---
 
