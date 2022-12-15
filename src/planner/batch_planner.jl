@@ -10,7 +10,7 @@ function planner_batch(;
     horizon=20:5:60,
     exploration_param=[8],
     seed_shift=1:10,
-    file_name::Union{Nothing,String}=nothing,
+    file_name::Union{Nothing,String,Vector{String}}=nothing,
     starting_seed=4839633
 )
     seeds = starting_seed .+ seed_shift
@@ -21,7 +21,11 @@ function planner_batch(;
         return it
     end
 
-    dff = CSV.read(file_name * ".csv", DataFrame)
+    dff = if file_name isa String
+        CSV.read(file_name * ".csv", DataFrame)
+    else
+        CSV.read(file_name, DataFrame)
+    end
     
     df_it = DataFrame(it)
     rename!(df_it, ["horizon", "budget", "exploration_param", "gamma", "seed"])
