@@ -1,7 +1,7 @@
 name = "PureMCTS"
 uuid = "cde1e6ed-b6c5-4433-b8e3-a6e84e6a9009"
 authors = ["Grzegorz Orzechowski <2590699+gorzech@users.noreply.github.com> and contributors"]
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
@@ -15,6 +15,7 @@ Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 [compat]
 AbstractTrees = "0.4"
 ProgressMeter = "1"
+CSV = "0.10"
 julia = "1"
 
 [extras]

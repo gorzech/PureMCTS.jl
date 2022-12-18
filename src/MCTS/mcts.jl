@@ -68,7 +68,7 @@ function select!(mcts::Planner)
     node = mcts.tree
     reward_multiplier = 1.0
     total_reward = 0.0
-    while !isleaf(node) && !isdone(value(node).state)
+    while !isleaf(node) && !isdone(mcts.env, value(node).state)
         total_reward += reward_multiplier * value(node).reward
         reward_multiplier *= mcts.γ
         action_id = select_action_id(node, mcts)
@@ -81,7 +81,7 @@ end
 
 
 function expand!(node::TreeNode, mcts::Planner)
-    done = isdone(value(node).state)
+    done = isdone(mcts.env, value(node).state)
     if isleaf(node) && (!done || isroot(node)) && depth(node) <= mcts.horizon
         leafs = length(action_space(mcts.env))
         addchildren!(node, (NodeValue{typeof(state(mcts.env))}() for _ = 1:leafs))
@@ -97,7 +97,7 @@ function simulate!(node::TreeNode, total_reward::Float64, mcts::Planner)
     actions = action_space(env)
     d = depth(node)
     reward_multiplier = mcts.γ^(d - 1)
-    done = isdone(value(node).state)
+    done = isdone(mcts.env, value(node).state)
     setstate!(env, value(node).state)
     total_reward += reward_multiplier * value(node).reward
     while !done && d <= mcts.horizon
@@ -145,7 +145,7 @@ function run_planner!(mcts; render_env=false, max_steps=Inf)
         render!(mcts.env)
     end
     steps = 0
-    while !isdone(value(mcts.tree).state)
+    while !isdone(mcts.env, value(mcts.tree).state)
         new_root = plan!(mcts)
         if render_env
             setstate!(mcts.env, value(new_root).state)
