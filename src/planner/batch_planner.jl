@@ -1,5 +1,5 @@
 using ProgressMeter
-using DataFrames: DataFrame, empty!, push!, nrow
+using DataFrames: DataFrame, empty!, push!, nrow, rename!, antijoin
 using CSV
 using Dates
 using Random: shuffle!
@@ -10,7 +10,7 @@ function planner_batch(;
     horizon=20:5:60,
     exploration_param=[8],
     seed_shift=1:10,
-    file_name::Union{Nothing,String}=nothing,
+    file_name::Union{Nothing,String,Vector{String}}=nothing,
     starting_seed=4839633
 )
     seeds = starting_seed .+ seed_shift
@@ -21,26 +21,18 @@ function planner_batch(;
         return it
     end
 
-    dff = CSV.read(file_name * ".csv", DataFrame)
-    isinit(it) = isempty(
-        filter(
-            [:horizon, :budget, :exploration_param, :gamma, :seed] =>
-                (h, b, t, g, s) ->
-                    (h, b, t, g, s) == (it[1], it[2], it[3], it[4], it[5]),
-            dff,
-        ),
-    )
-    return filter(isinit, it)
-end
+    dff = if file_name isa String
+        CSV.read(file_name * ".csv", DataFrame)
+    else
+        CSV.read(file_name, DataFrame)
+    end
+    
+    df_it = DataFrame(it)
+    rename!(df_it, ["horizon", "budget", "exploration_param", "gamma", "seed"])
 
-# function sp_batch(file_name::Union{Nothing,String}=nothing,)
-#     planner_batch(
-#         budget=round.(Int, exp10.(range(2, 5, 31))),
-#         horizon=10:5:40,
-#         exploration_param=[4, 8, 16, 32, 64],
-#         file_name=file_name
-#     )
-# end
+    df_result = antijoin(df_it, dff, on=[:horizon, :budget, :exploration_param, :gamma, :seed])
+    return Tuple.(eachrow(df_result))
+end
 
 function execute_batch(
     planner_it,
