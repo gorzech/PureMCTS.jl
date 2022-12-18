@@ -1,3 +1,3 @@
 # Test for GitHub pages
 
-Link to results [here](../results/InvertedPendulums.md)
+Link to results [here](./InvertedPendulums.md)
