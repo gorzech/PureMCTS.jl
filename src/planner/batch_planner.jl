@@ -36,8 +36,7 @@ end
 
 function execute_batch(
     planner_it,
-    file_name_prefix,
-    opts=PendulumOpts();
+    file_name_prefix;
     envfun=InvertedDoublePendulumEnv,
     show_progress=false,
     start_new_file=true
@@ -72,7 +71,7 @@ function execute_batch(
     empty!(df)
     p = !show_progress || Progress(length(planner_it))
     Threads.@threads for j in eachindex(planner_it)
-        env = envfun(opts)
+        env = envfun()
         mcts = Planner(
             env,
             seed=planner_it[j][5],
