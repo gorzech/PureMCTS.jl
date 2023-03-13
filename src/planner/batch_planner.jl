@@ -39,7 +39,8 @@ function execute_batch(
     file_name_prefix;
     envfun=InvertedDoublePendulumEnv,
     show_progress=false,
-    start_new_file=true
+    start_new_file=true,
+    file_dump_interval=10,
 )
     file_name = file_name_prefix * ".csv"
     if start_new_file && isfile(file_name)
@@ -84,7 +85,7 @@ function execute_batch(
         !show_progress || next!(p)
         lock(lk) do
             push!(df, [planner_it[j][5], planner_it[j][1], planner_it[j][2], planner_it[j][3], planner_it[j][4], res])
-            if nrow(df) >= 10
+            if nrow(df) >= file_dump_interval
                 count += nrow(df)
                 CSV.write(file_name, df, append=!start_new_file)
                 start_new_file = false
